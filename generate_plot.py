@@ -2,39 +2,30 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-x = [] 
-y = []
-original_file = open("AARTFAAC_DELTA_DELTA.log", "r")
-lines = original_file.readlines()[::-1]
-original_file.close()
+data_dict = {}
 
-for i in range(len(lines)):
-    if "InputBuffer 0-0, valid" in lines[i]:
-        lines = lines[i+1:]
-        break
+with open("irib.out", "r") as original_file:
+    lines = original_file.readlines()
 
-for i in range(len(lines)):
-    if "InputBuffer 1-1" in lines[i]:
-        lines = lines[:i]
-        break
+def process_data(data):
+    for index, line in enumerate(data):
+        match_group = re.search(r"vis: (\d+)", line)
+        value_match = re.search(r"\((\d+\.\d+e[+-]?\d+)", line)
+        
+        if match_group and value_match:
+            group = match_group.group(1)
+            value = float(value_match.group(1))
+            
+            if group not in data_dict:
+                data_dict[group] = {'x': [], 'y': []}
+            
+            data_dict[group]['x'].append(index)
+            data_dict[group]['y'].append(value)
 
-lines = lines[::-1]
+process_data(lines)
 
-for i in range(len(lines)):
-    lines[i] = lines[i][lines[i].find('(') + 1:]
-    lines[i] = lines[i][:lines[i].find(',')]
-    power = int(lines[i][lines[i].find('+') + 1:])
-    lines[i] = lines[i][:lines[i].find('e')]
-    y.append((float(lines[i]) * 10**power))
-    lines[i] = f"{i} " + str(float(lines[i]) * 1**power)
-    print(lines[i])
-    x.append(i)
+for group, data in data_dict.items():
+    plt.figure() 
+    plt.plot(data['x'], data['y'])
+    plt.show() 
 
-xpoints = np.array(x)
-ypoints = np.array(y)
-
-plt.plot(xpoints, ypoints)
-plt.show()
-new_file = open("AARTFAAC_EDIT.log", 'w')
-new_file.writelines(lines)
-new_file.close()
